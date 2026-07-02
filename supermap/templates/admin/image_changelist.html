@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools %}
+<div class="object-tools">
+    {% if has_add_permission %}
+    <ul class="object-tools">
+        <li>
+            <a href="{% url 'admin:upload_image' %}" class="addlink">Upload Image</a>
+        </li>
+    </ul>
+    {% endif %}
+</div>
+{% endblock %}

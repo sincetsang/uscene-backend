@@ -1,0 +1,72 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .submit-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+    .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        min-width: 80px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        border: none;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        text-align: center;
+    }
+    .button.back-button {
+        background: #ba2121;
+        color: white;
+    }
+    .button.back-button:hover {
+        background: #a41515;
+        color: white;
+    }
+    .button.default {
+        background: #417690;
+        color: white;
+    }
+    .button.default:hover {
+        background: #295570;
+        color: white;
+    }
+    input.button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    a.button:visited {
+        color: white;
+    }
+    a.button:link {
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form method="post">
+        {% csrf_token %}
+        <fieldset class="module aligned">
+            <div class="form-row">
+                <label for="room_data">房型数据 (JSON):</label>
+                <textarea name="room_data" id="room_data" rows="20" style="width: 100%;" required></textarea>
+            </div>
+        </fieldset>
+        <div class="submit-row">
+            <a href="{% url 'admin:supermap_checkinpoint_changelist' %}" class="button back-button">返回列表</a>
+            <input type="submit" value="提交" class="button default" />
+        </div>
+    </form>
+</div>
+{% endblock %} 

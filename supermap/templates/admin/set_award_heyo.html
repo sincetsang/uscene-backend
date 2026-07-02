@@ -1,0 +1,12 @@
+<!-- templates/admin/set_award_heyo.html -->
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+  <h2>Set Award Heyo to Custom Value</h2>
+  <form method="post" action="{{ path }}">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="hidden" name="action" value="set_award_heyo">
+    <input type="hidden" name="apply" value="yes">
+    <button type="submit" class="button">Apply</button>
+  </form>
+{% endblock %}

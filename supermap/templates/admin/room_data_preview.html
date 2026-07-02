@@ -1,0 +1,185 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .button-row {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    .button-row .button {
+        background: #79aec8;
+        padding: 10px 15px;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .button-row .button:hover {
+        background: #417690;
+    }
+    .button-row .button.default {
+        background: #417690;
+    }
+    .button-row .button.default:hover {
+        background: #295570;
+    }
+    .submit-row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    .submit-row form {
+        margin: 0;
+    }
+    .submit-row input[type="submit"] {
+        min-width: 100px;
+    }
+    .submit-row input[type="submit"].back-button {
+        background: #ba2121;
+    }
+    .submit-row input[type="submit"].back-button:hover {
+        background: #a41515;
+    }
+    .room-images {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    .room-image {
+        width: 200px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .room-image:hover {
+        opacity: 0.9;
+    }
+    .room-info {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .room-name {
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .room-detail {
+        margin: 5px 0;
+        color: #666;
+    }
+    .room-price {
+        color: #ba2121;
+        font-weight: bold;
+    }
+    .room-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .room-images {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+    }
+    .room-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid #eee;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    .room-image:hover {
+        opacity: 0.9;
+    }
+    .room-info {
+        margin-top: 15px;
+    }
+    .room-name {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .room-detail {
+        color: #666;
+        margin-bottom: 5px;
+    }
+    .room-price {
+        color: #e74c3c;
+        font-weight: bold;
+        font-size: 16px;
+        margin-top: 10px;
+    }
+    .button.back-button {
+        background-color: #dc3545;
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+    .button.back-button:hover {
+        background-color: #c82333;
+        color: white;
+        text-decoration: none;
+    }
+    .button.back-button:visited {
+        color: white;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>房型数据预览</h1>
+
+    <div>
+        <h2>{{ point.title }} - 房型数据预览</h2>
+        {% for room in room_list %}
+        <div class="room-card">
+            <div class="room-name">{{ room.name }}</div>
+            <div class="room-info">
+                <div class="room-detail">早餐: {{ room.breakfast }}</div>
+                <div class="room-detail">取消政策: {{ room.cancel_policy }}</div>
+                <div class="room-detail">确认时间: {{ room.confirm_time }}</div>
+                <div class="room-detail">房型代码: {{ room.room_code }}</div>
+                <div class="room-detail">预订状态: {{ room.is_booking|yesno:"可预订,不可预订" }}</div>
+                <div class="room-detail">剩余数量: {{ room.remain_quantity }}</div>
+                <div class="room-price">价格: ¥{{ room.price }}</div>
+            </div>
+            {% if room.images %}
+            <div class="room-images">
+                {% for image_url in room.images %}
+                <img src="{{ image_url }}" alt="房型图片" class="room-image" onclick="window.open('{{ image_url }}', '_blank')">
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="submit-row">
+        <a href="{% url 'admin:room-data' point.id %}" class="button back-button">返回</a>
+        <form method="post" action="{% url 'admin:room-data-save' point.id %}">
+            {% csrf_token %}
+            <input type="submit" value="保存数据" class="default">
+        </form>
+    </div>
+</div>
+{% endblock %} 

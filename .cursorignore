@@ -1,0 +1,14 @@
+tutorial-env
+db.sqlite3
+.DS_Store
+**/.DS_Store
+**/*.pyc
+.idea
+keystores
+info.log
+t_*
+mysite/settings_dev.py
+.vscode
+venv
+.env
+.env.local

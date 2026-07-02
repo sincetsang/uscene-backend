@@ -1,0 +1,415 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrahead %}{{ block.super }}
+<script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+{{ form.media }}
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+<style>
+    .upload-form {
+        max-width: 95%;
+        margin: 20px auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .form-row {
+        margin-bottom: 20px;
+    }
+    .form-row label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    .form-row input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .form-row .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+    .submit-row {
+        text-align: center;
+        margin-top: 30px;
+    }
+    .submit-row input {
+        background: #417690;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .submit-row input:hover {
+        background: #295a6d;
+    }
+    .error-message {
+        color: #d32f2f;
+        background: #ffebee;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    .success-message {
+        color: #2e7d32;
+        background: #e8f5e8;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    .result-info {
+        background: #e3f2fd;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+    }
+    .result-info h3 {
+        margin-top: 0;
+        color: #1976d2;
+    }
+    .image-preview {
+        margin-top: 20px;
+        text-align: center;
+    }
+    .image-preview img {
+        max-width: 300px;
+        max-height: 200px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    /* 导入按钮加载动画样式 */
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .loading-spinner {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        text-align: center;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #28a745;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+        color: #333;
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .loading-subtext {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    /* 禁用按钮样式 */
+    .submit-row input:disabled {
+        background: #ccc !important;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo; <a href="{% url 'admin:supermap_checkinpoint_changelist' %}">地标</a>
+    &rsaquo; R2图片读取
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="upload-form">
+        <h1>Excel数据导入</h1>
+        <p>请选择包含地标数据的Excel文件，系统将导入数据到check_in_point表并处理相关图片。</p>
+        <p><strong>注意：</strong>Excel第一行必须是表头，与数据库字段名一致。图片会自动关联到对应的地标记录。</p>
+        <p><strong>预览功能：</strong>点击"预览数据"可以查看Excel中的数据内容，以行为单位显示。</p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags %}{{ message.tags }}{% endif %}-message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if form.errors %}
+            <div class="error-message">
+                <strong>请修正以下错误：</strong>
+                {{ form.errors }}
+            </div>
+        {% endif %}
+        
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <label for="{{ form.excel_file.id_for_label }}">{{ form.excel_file.label }}</label>
+                {{ form.excel_file }}
+                {% if form.excel_file.help_text %}
+                    <div class="help-text">{{ form.excel_file.help_text }}</div>
+                {% endif %}
+                {% if form.excel_file.errors %}
+                    <div class="error-message">{{ form.excel_file.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="submit-row">
+                <input type="submit" value="预览数据" name="_preview" style="margin-right: 10px;">
+                <input type="submit" value="导入数据" name="_import" id="importBtn" style="background: #28a745;">
+                <a href="{% url 'admin:supermap_checkinpoint_changelist' %}" class="button cancel-link">取消</a>
+            </div>
+        </form>
+        
+        <!-- 加载动画覆盖层 -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <div class="loading-text" id="loadingText">正在导入数据...</div>
+                <div class="loading-subtext" id="loadingSubtext">正在处理Excel文件并上传图片，这可能需要几分钟时间</div>
+            </div>
+        </div>
+        
+        {% if upload_result %}
+            <div class="result-info">
+                <h3>处理结果</h3>
+                <p><strong>状态：</strong>{{ upload_result.message }}</p>
+                
+                {% if upload_result.success %}
+                    {% if upload_result.preview_data %}
+                        <!-- 数据预览模式 -->
+                        <p><strong>预览数据行数：</strong>{{ upload_result.preview_data|length }}</p>
+                        
+                        <div class="preview-data">
+                            <h4>Excel数据预览（{{ upload_result.preview_data|length }}行数据）：</h4>
+                            
+                            <!-- Excel样式的数据表格 -->
+                            <div class="excel-table-container" style="overflow-x: auto; margin: 20px 0; border: 2px solid #217346; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%;">
+                                <table class="excel-table" style="width: 100%; min-width: 100%; border-collapse: collapse; background: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; table-layout: fixed;">
+                                    <!-- 表头行 -->
+                                    <thead>
+                                        <tr style="background: linear-gradient(135deg, #217346 0%, #1e6b3d 100%); color: white; font-weight: bold;">
+                                            <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: center; width: 80px; font-size: 13px;">行号</th>
+                                            {% for header in upload_result.headers %}
+                                                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: center; width: 150px; font-size: 13px; white-space: nowrap;">{{ header }}</th>
+                                            {% endfor %}
+                                            <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: center; width: 250px; font-size: 13px;">图片预览</th>
+                                        </tr>
+                                    </thead>
+                                    
+                                    <!-- 数据行 -->
+                                    <tbody>
+                                        {% for row_data in upload_result.preview_data %}
+                                            <tr style="background: {% if forloop.counter|divisibleby:2 %}#f8f9fa{% else %}#ffffff{% endif %};">
+                                                <!-- 行号 -->
+                                                <td style="border: 1px solid #ddd; padding: 10px 8px; text-align: center; font-weight: bold; background: #e8f5e8; color: #217346; font-size: 12px; width: 80px;">
+                                                    {{ row_data.row_number }}
+                                                </td>
+                                                
+                                                <!-- 数据单元格 -->
+                                                {% for header in upload_result.headers %}
+                                                    <td style="border: 1px solid #ddd; padding: 10px 8px; text-align: left; font-size: 12px; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                        {% for field, value in row_data.data.items %}
+                                                            {% if field in header %}
+                                                                {% if value %}
+                                                                    <span title="{{ value }}">{{ value|truncatechars:30 }}</span>
+                                                                {% else %}
+                                                                    <span style="color: #999; font-style: italic;">空值</span>
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </td>
+                                                {% endfor %}
+                                                
+                                                <!-- 图片预览列 -->
+                                                <td style="border: 1px solid #ddd; padding: 10px 8px; text-align: center; vertical-align: middle; width: 250px;">
+                                                    {% if row_data.images %}
+                                                        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                                                            {% for image in row_data.images %}
+                                                                <div style="text-align: center; position: relative;">
+                                                                    <img src="data:image/jpeg;base64,{{ image.base64 }}" 
+                                                                         alt="行{{ row_data.row_number }}{{ image.col_letter }}列图片" 
+                                                                         style="width: 60px; height: 60px; object-fit: cover; border: 2px solid #ddd; border-radius: 4px; cursor: pointer; transition: transform 0.2s;"
+                                                                         onmouseover="this.style.transform='scale(1.1)'" 
+                                                                         onmouseout="this.style.transform='scale(1)'"
+                                                                         onclick="showImageModal(this.src, '行{{ row_data.row_number }}{{ image.col_letter }}列图片')">
+                                                                    <div style="font-size: 10px; color: #666; margin-top: 4px; font-weight: bold;">{{ image.col_letter }}列</div>
+                                                                    <div style="font-size: 9px; color: #999;">{{ image.size|filesizeformat }}</div>
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% else %}
+                                                        <span style="color: #999; font-style: italic; font-size: 11px;">无图片</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 图片模态框 -->
+                            <div id="imageModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8);">
+                                <div style="position: relative; margin: 5% auto; padding: 20px; width: 80%; max-width: 600px; text-align: center;">
+                                    <span style="position: absolute; top: 10px; right: 25px; color: #f1f1f1; font-size: 35px; font-weight: bold; cursor: pointer;" onclick="closeImageModal()">&times;</span>
+                                    <img id="modalImage" style="max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                                    <p id="modalCaption" style="color: white; margin-top: 15px; font-size: 16px;"></p>
+                                </div>
+                            </div>
+                            
+                            <!-- JavaScript for modal -->
+                            <script>
+                                function showImageModal(src, caption) {
+                                    document.getElementById('modalImage').src = src;
+                                    document.getElementById('modalCaption').textContent = caption;
+                                    document.getElementById('imageModal').style.display = 'block';
+                                }
+                                
+                                function closeImageModal() {
+                                    document.getElementById('imageModal').style.display = 'none';
+                                }
+                                
+                                // 点击模态框背景关闭
+                                document.getElementById('imageModal').onclick = function(e) {
+                                    if (e.target === this) {
+                                        closeImageModal();
+                                    }
+                                }
+                            </script>
+                        </div>
+                    {% elif upload_result.records %}
+                        <!-- 数据导入模式 -->
+                        <p><strong>导入记录数量：</strong>{{ upload_result.records|length }}</p>
+                        
+                        <div class="imported-records">
+                            <h4>导入的记录：</h4>
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                                <thead>
+                                    <tr style="background: #f5f5f5;">
+                                        <th style="border: 1px solid #ddd; padding: 8px;">ID</th>
+                                        <th style="border: 1px solid #ddd; padding: 8px;">标题</th>
+                                        <th style="border: 1px solid #ddd; padding: 8px;">图片数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in upload_result.records %}
+                                        <tr>
+                                            <td style="border: 1px solid #ddd; padding: 8px;">{{ record.id }}</td>
+                                            <td style="border: 1px solid #ddd; padding: 8px;">{{ record.title }}</td>
+                                            <td style="border: 1px solid #ddd; padding: 8px;">{{ record.images_count }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 导入按钮转圈效果JavaScript -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('uploadForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const loadingSubtext = document.getElementById('loadingSubtext');
+        const importBtn = document.getElementById('importBtn');
+        
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // 检查是否有文件被选择
+                const fileInput = document.querySelector('input[type="file"]');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('请先选择一个Excel文件');
+                    e.preventDefault();
+                    return;
+                }
+                
+                // 确定是预览还是导入操作
+                const submitButton = e.submitter;
+                
+                // 只有导入操作才显示转圈效果
+                if (submitButton && submitButton.name === '_import') {
+                    // 显示加载动画
+                    loadingText.textContent = '正在导入数据...';
+                    loadingSubtext.textContent = '正在处理Excel文件并上传图片，这可能需要几分钟时间';
+                    loadingOverlay.style.display = 'flex';
+                    
+                    // 禁用导入按钮
+                    if (importBtn) importBtn.disabled = true;
+                    
+                    // 添加进度提示
+                    let progressCounter = 0;
+                    const progressInterval = setInterval(function() {
+                        progressCounter++;
+                        if (progressCounter === 1) {
+                            loadingSubtext.textContent = '正在解析Excel文件...';
+                        } else if (progressCounter === 3) {
+                            loadingSubtext.textContent = '正在提取图片数据...';
+                        } else if (progressCounter === 5) {
+                            loadingSubtext.textContent = '正在上传图片到服务器...';
+                        } else if (progressCounter === 7) {
+                            loadingSubtext.textContent = '正在保存数据到数据库...';
+                        }
+                    }, 2000);
+                    
+                    // 清理定时器（当页面重新加载时）
+                    window.addEventListener('beforeunload', function() {
+                        clearInterval(progressInterval);
+                    });
+                }
+            });
+        }
+        
+        // 页面加载完成后的处理
+        window.addEventListener('load', function() {
+            // 如果页面重新加载（说明处理完成），隐藏加载动画
+            if (loadingOverlay && loadingOverlay.style.display === 'flex') {
+                loadingOverlay.style.display = 'none';
+                if (importBtn) importBtn.disabled = false;
+            }
+        });
+    });
+</script>
+{% endblock %} 
