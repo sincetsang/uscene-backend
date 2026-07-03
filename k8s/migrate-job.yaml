@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: uscene-migrate
+  namespace: uscene-test
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      imagePullSecrets:
+        - name: acr-creds
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ${ACR_REGISTRY}/uscene-backend:${IMAGE_TAG}
+          command: ["python", "manage.py", "migrate", "--noinput"]
+          envFrom:
+            - configMapRef:
+                name: uscene-backend-config
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: uscene-secrets
+                  key: django-secret-key
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uscene-secrets
+                  key: db-password

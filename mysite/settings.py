@@ -23,12 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ["SECRET_KEY"]
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = eval(os.getenv("DEBUG"))
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 # Application definition
@@ -97,18 +97,18 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ["DATABASE"],
-        'USER': os.environ["DATABASE_USER"],
-        'PASSWORD': os.environ["DATABASE_PASSWORD"],
+        'NAME': os.getenv("DATABASE_NAME", ""),
+        'USER': os.getenv("DATABASE_USER", ""),
+        'PASSWORD': os.getenv("DATABASE_PASSWORD", ""),
         'charset': 'utf8mb4',
-        'HOST': os.environ["DATABASE_HOST"],
-        'PORT': os.environ["DATABASE_PORT"],
+        'HOST': os.getenv("DATABASE_HOST", "127.0.0.1"),
+        'PORT': os.getenv("DATABASE_PORT", "3306"),
         'OPTIONS': {
-            'ssl': {} if os.environ["DATABASE_CA"] == ''
+            'ssl': {} if os.getenv("DATABASE_CA", "") == ''
             else {
-                'ca': os.environ["DATABASE_CA"],
-                'key': os.environ["DATABASE_KEY"],
-                'cert': os.environ["DATABASE_CERT"],
+                'ca': os.getenv("DATABASE_CA", ""),
+                'key': os.getenv("DATABASE_KEY", ""),
+                'cert': os.getenv("DATABASE_CERT", ""),
             },
             'charset': 'utf8mb4',
             'use_unicode': True,
@@ -116,14 +116,10 @@ DATABASES = {
     }
 }
 
-# Local dev: use LocMemCache instead of PyLibMCCache (memcached not required)
-_DEFAULT_CACHE_BACKEND = 'django.core.cache.backends.locmem.LocMemCache'
-_DEFAULT_CACHE_LOCATION = 'uscene-backend-local'
-
 CACHES = {
     'default': {
-        'BACKEND': _DEFAULT_CACHE_BACKEND,
-        'LOCATION': _DEFAULT_CACHE_LOCATION,
+        'BACKEND': os.getenv('CACHE_BACKEND', 'django.core.cache.backends.locmem.LocMemCache'),
+        'LOCATION': os.getenv('CACHE_LOCATION', 'uscene-backend-local'),
     }
 }
 
@@ -173,24 +169,24 @@ BOOTSTRAP3 = {
 }
 
 JWT = {
-    'SECRET_KEY': os.environ["JWT_SECRET_KEY"],
+    'SECRET_KEY': os.getenv("JWT_SECRET_KEY"),
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ["EMAIL_HOST"]
-EMAIL_PORT = os.environ["EMAIL_PORT"]
-EMAIL_HOST_USER = os.environ["EMAIL_HOST_USER"]
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = os.getenv("EMAIL_PORT", "587")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 # 在邮箱中设置的客户端授权密码
-EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 # 收件人看到的发件人
-EMAIL_FROM = os.environ["EMAIL_FROM"]
+EMAIL_FROM = os.getenv("EMAIL_FROM", "")
 EMAIL_USE_TLS = True
 EMAIL_SEND_ENABLE = True
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if os.getenv("CSRF_TRUSTED_ORIGINS") else []
 CORS_ALLOW_CREDENTIALS = True
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ORIGIN_WHITELIST = os.getenv("CORS_ORIGIN_WHITELIST").split(",")
+CORS_ORIGIN_ALLOW_ALL = os.getenv("CORS_ORIGIN_ALLOW_ALL", "False").lower() in ("true", "1")
+CORS_ORIGIN_WHITELIST = os.getenv("CORS_ORIGIN_WHITELIST", "").split(",") if os.getenv("CORS_ORIGIN_WHITELIST") else []
 CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW',)
 CORS_ALLOW_HEADERS = (
     'XMLHttpRequest',
@@ -218,7 +214,7 @@ REST_FRAMEWORK = {
 DING = {
     'endpoint': 'https://oapi.dingtalk.com/robot/send?access_token=',
     'secret_access_key': os.getenv("BACKEND_DING_SECRET_ACCESS_KEY"),
-    'enable': eval(os.getenv("BACKEND_DING_ENABLE")),
+    'enable': os.getenv("BACKEND_DING_ENABLE", "False").lower() in ("true", "1"),
     'secret_access_keys': {
         'daily_report': os.getenv("BACKEND_DING_SECRET_ACCESS_KEY_DAILY"),
         'hourly_report': os.getenv("BACKEND_DING_SECRET_ACCESS_KEY_HOURLY"),
@@ -229,7 +225,7 @@ DING = {
 
 # lark配置
 LARK = {
-    'enable': eval(os.getenv("BACKEND_LARK_ENABLE")),
+    'enable': os.getenv("BACKEND_LARK_ENABLE", "False").lower() in ("true", "1"),
     'endpoint': 'https://open.larksuite.com/open-apis/bot/v2/hook/',
     'secret_access_keys': {
         'daily_report': os.getenv("BACKEND_LARK_SECRET_ACCESS_KEY_DAILY"),
@@ -284,12 +280,12 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': os.getenv("LOGGING_HANDLERS").split(","),
+        'handlers': os.getenv("LOGGING_HANDLERS", "console").split(","),
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': os.getenv("LOGGING_HANDLERS").split(","),
+            'handlers': os.getenv("LOGGING_HANDLERS", "console").split(","),
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
             'propagate': False,
         },
