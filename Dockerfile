@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Collect static files during build
-RUN python manage.py collectstatic --noinput
+RUN mkdir -p /var/uscene/static && python manage.py collectstatic --noinput
 
 EXPOSE 8997
 
